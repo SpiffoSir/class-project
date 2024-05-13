@@ -26,13 +26,7 @@ knn.fit(X_train, y_train)
 # making predictions on the testing set
 y_pred = knn.predict(X_test)
 '''
-'''
-import sklearn.neural_network
-# Create an instance of the MLPClassifier class
-neural_network = sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(10, 10), activation='relu')
-neural_network.fit(X_train, y_train)
-y_pred = neural_network.predict(X_test)
-'''
+
 
 from sklearn import tree
 

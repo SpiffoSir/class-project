@@ -1,66 +1,54 @@
-import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.datasets import load_iris
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
-# 生成一些示例数据
-np.random.seed(0)
-class1_data = np.random.randn(50, 2) + np.array([2, 2])
-class2_data = np.random.randn(50, 2) + np.array([5, 5])
+# 加载鸢尾花数据集
+iris = load_iris()
+X = pd.DataFrame(iris.data, columns=iris.feature_names)
+y = pd.Series(iris.target)
 
-# 可视化数据
-plt.scatter(class1_data[:,0], class1_data[:,1], color='blue', label='Class 1')
-plt.scatter(class2_data[:,0], class2_data[:,1], color='red', label='Class 2')
-plt.xlabel('Feature 1')
-plt.ylabel('Feature 2')
-plt.title('Sample Data')
+# 拟合分割线
+lda = LinearDiscriminantAnalysis()
+lda.fit(X, y)
+
+# 使用拟合出来的分割线对原始样本进行分割
+predictions = lda.predict(X)
+
+"-----------------可视化------------------"
+# 投射到直线
+X_lda = lda.transform(X)
+
+# 创建一个新的 DataFrame，包含主成分和对应的类别
+df_lda = pd.DataFrame(data=X_lda, columns=['LD1', 'LD2'])
+df_lda['Target'] = y
+
+# 设置不同类别对应的颜色
+colors = ['red', 'green', 'blue']
+
+# 绘制散点图
+plt.figure(figsize=(8, 6)) #绘制8*6图像
+
+for i, target in enumerate(iris.target_names):
+    plt.scatter(df_lda.loc[df_lda['Target'] == i, 'LD1'],
+                df_lda.loc[df_lda['Target'] == i, 'LD2'],
+                c=colors[i], label=target)
+
+# 绘制决策边界（拟合出来的直线）
+for i in range(len(iris.target_names) - 1):  # 循环遍历类别
+    coef = lda.coef_[i]  # 取对应类别的权重向量
+    intercept = lda.intercept_[i]  # 取对应类别的截距
+
+    # 画出决策边界直线
+    plt.plot([X_lda[:, 0].min(), X_lda[:, 0].max()],
+             [-(coef[0]*X_lda[:, 0].min() + intercept)/coef[1],
+              -(coef[0]*X_lda[:, 0].max() + intercept)/coef[1]],
+             color='black', linestyle='--')
+
+plt.xlabel('LD1')
+plt.ylabel('LD2')
+plt.title('Linear Discriminant Analysis of Iris Dataset')
 plt.legend()
-plt.show()
-
-# 计算类内散度矩阵
-mean_class1 = np.mean(class1_data, axis=0)
-mean_class2 = np.mean(class2_data, axis=0)
-within_class_scatter = np.dot((class1_data - mean_class1).T, (class1_data - mean_class1)) + np.dot((class2_data - mean_class2).T, (class2_data - mean_class2))
-
-# 计算类间散度矩阵
-between_class_scatter = np.dot((mean_class1 - mean_class2).reshape(-1, 1), (mean_class1 - mean_class2).reshape(1, -1))
-
-# 计算Fisher判别准则
-fisher_criteria = np.dot(np.linalg.inv(within_class_scatter), between_class_scatter)
-
-# 计算最优判别方向（特征向量）
-eigen_values, eigen_vectors = np.linalg.eig(fisher_criteria)
-optimal_direction = eigen_vectors[:, np.argmax(eigen_values)]
-
-# 投影数据到最优判别方向上
-projected_class1_data = np.dot(class1_data, optimal_direction)
-projected_class2_data = np.dot(class2_data, optimal_direction)
-
-# 可视化投影后的数据
-plt.hist(projected_class1_data, color='blue', alpha=0.5, label='Class 1', bins=10)
-plt.hist(projected_class2_data, color='red', alpha=0.5, label='Class 2', bins=10)
-plt.xlabel('Projection on Optimal Direction')
-plt.ylabel('Frequency')
-plt.title('Projected Data')
-plt.legend()
-plt.show()
-
-
-
-'隔离'
-# 计算最优判别直线的斜率和截距
-slope = optimal_direction[1] / optimal_direction[0]
-intercept = mean_class1[1] - slope * mean_class1[0]
-
-# 绘制原始数据点和最优判别直线
-plt.scatter(class1_data[:,0], class1_data[:,1], color='blue', label='Class 1')
-plt.scatter(class2_data[:,0], class2_data[:,1], color='red', label='Class 2')
-plt.xlabel('Feature 1')
-plt.ylabel('Feature 2')
-
-# 绘制最优判别直线
-x_vals = np.array(plt.gca().get_xlim())
-y_vals = intercept + slope * x_vals
-plt.plot(x_vals, y_vals, color='green', linestyle='--', label='Optimal Discriminant Line')
-
-plt.title('Sample Data with Optimal Discriminant Line')
-plt.legend()
+plt.grid(True)
 plt.show()

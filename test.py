@@ -6,12 +6,13 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 from sklearn.inspection import DecisionBoundaryDisplay
+""
 
-# 加载鸢尾花数据集
+
+# 加载鸢尾花数据集,现在只取前两维
 iris = load_iris()
-X = pd.DataFrame(iris.data, columns=iris.feature_names)
-y = pd.Series(iris.target)
-
+X = iris.data[:, :2]
+y = iris.target
 # 对X和y使用Fisher's LDA 算法，训练好的模型保存在类属性里，使用predict调用
 lda = LinearDiscriminantAnalysis()
 lda.fit(X, y)
@@ -61,26 +62,9 @@ disp = DecisionBoundaryDisplay.from_estimator(
     lda,
     X,
     response_method="predict",
-    cmap=plt.cm.coolwarm,
-    alpha=0.8,
-    ax=ax,
-    xlabel=iris.feature_names[0],
-    ylabel=iris.feature_names[1],
+    ax = ax,
+    cmap = plt.cm.Paired
 )
-
-# 投射到直线
-X_lda = lda.transform(X)
-# 创建一个新的 DataFrame，包含主成分和对应的类别
-df_lda = pd.DataFrame(data=X_lda, columns=['LD1', 'LD2'])
-df_lda['Target'] = y
-
-# 设置不同类别对应的颜色
-colors = ['red', 'green', 'blue']
-
-# 绘制散点图
-plt.figure(figsize=(8, 6)) #绘制8*6图像
-
-for i, target in enumerate(iris.target_names):
-    plt.scatter(df_lda.loc[df_lda['Target'] == i, 'LD1'],
-                df_lda.loc[df_lda['Target'] == i, 'LD2'],
-                c=colors[i], label=target)
+ax.scatter(X[:, 0], X[:, 1], c=y, edgecolor='k', s=20)
+ax.set_title('Decision Boundary of SVC')
+plt.show()

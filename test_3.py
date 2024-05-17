@@ -45,6 +45,7 @@ for clf, title, ax in zip(models, titles, sub.flatten()):
         xlabel=iris.feature_names[0],
         ylabel=iris.feature_names[1],
     )
+    print(clf)
     ax.scatter(X0, X1, c=y, cmap=plt.cm.coolwarm, s=20, edgecolors="k")
     ax.set_xticks(())
     ax.set_yticks(())

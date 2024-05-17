@@ -6,8 +6,10 @@ from sklearn.svm import SVC
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+"使用四维向量训练模型"
 
-# 加载鸢尾花数据集
+
+# 加载鸢尾花数据集,现在用四维数据训练
 iris = load_iris()
 X = pd.DataFrame(iris.data, columns=iris.feature_names)
 y = pd.Series(iris.target)

@@ -5,23 +5,26 @@ from sklearn.datasets import load_iris
 from sklearn.svm import SVC
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 "使用四维向量训练模型"
 
-
-# 加载鸢尾花数据集,现在用四维数据训练
+"---------------------------------1、导入数据集---------------------------"
+"------------------提供维数修改---------------------"
+# 加载鸢尾花数据集
 iris = load_iris()
 X = pd.DataFrame(iris.data, columns=iris.feature_names)
 y = pd.Series(iris.target)
 
-# 对X和y使用SVC 算法，训练好的模型保存在类属性里，使用predict调用
+"------------------2、应用模型并训练------------------------"
+"--------模型待展开----------"
+# 对X和y使用Fisher's LDA 算法，训练好的模型保存在类属性里，使用predict调用
 svm = SVC(kernel='linear')
 svm.fit(X, y)
 
-
-# 使用拟合出来的分割线对原始样本进行分割，此时返回的数据是类型判断数组，0，1，2分别代表属于什么类
-# 结果统计
+"-------------------3、使用训练好的模型进行预测--------------------------"
 predictions = svm.predict(X)
+
+"-------------------4、数据后处理-------------------------"
+"计算准确度和混淆矩阵"
 prediction_arr = np.array([0,0,0])
 y_arr = np.array([0,0,0])
 predictions_accuracy = 0
@@ -51,7 +54,10 @@ print(wrong_list)
 conf_matrix = confusion_matrix(y, predictions)
 print("conf_matrix:")
 print(conf_matrix)
-"-----------------可视化------------------"
+"-----------------5、可视化------------------"
+"包含散点和混淆矩阵使用"
+
+#混淆矩阵
 plt.figure(figsize=(8, 6))
 sns.heatmap(conf_matrix, annot=True, cmap='Blues', fmt='d', xticklabels=iris.target_names, yticklabels=iris.target_names)
 plt.xlabel('Predicted Label')

@@ -6,7 +6,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.tree import plot_tree
 import seaborn as sns
 import matplotlib.pyplot as plt
-"使用两维向量训练模型"
+"使用四维向量训练模型"
 
 "---------------------------------1、导入数据集---------------------------"
 "------------------提供维数修改---------------------"

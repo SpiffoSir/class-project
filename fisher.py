@@ -1,25 +1,31 @@
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.datasets import load_iris
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.metrics import confusion_matrix
-import seaborn as sns
 from sklearn.inspection import DecisionBoundaryDisplay
+import seaborn as sns
+import matplotlib.pyplot as plt
 "使用两维向量训练模型"
 
+"---------------------------------1、导入数据集---------------------------"
+"------------------提供维数修改---------------------"
 # 加载鸢尾花数据集
 iris = load_iris()
 X = iris.data[:, :2]
 y = iris.target
 
+"------------------2、应用模型并训练------------------------"
+"--------模型待展开----------"
 # 对X和y使用Fisher's LDA 算法，训练好的模型保存在类属性里，使用predict调用
 lda = LinearDiscriminantAnalysis()
 lda.fit(X, y)
 
-# 使用拟合出来的分割线对原始样本进行分割，此时返回的数据是类型判断数组，0，1，2分别代表属于什么类
-# 结果统计
+"-------------------3、使用训练好的模型进行预测--------------------------"
 predictions = lda.predict(X)
+
+"-------------------4、数据后处理-------------------------"
+"计算准确度和混淆矩阵"
 prediction_arr = np.array([0,0,0])
 y_arr = np.array([0,0,0])
 predictions_accuracy = 0
@@ -49,7 +55,8 @@ print(wrong_list)
 conf_matrix = confusion_matrix(y, predictions)
 print("conf_matrix:")
 print(conf_matrix)
-"-----------------可视化------------------"
+"-----------------5、可视化------------------"
+"包含散点和混淆矩阵使用"
 # # 投射到直线
 # X_lda = lda.transform(X)
 # # 创建一个新的 DataFrame，包含主成分和对应的类别

@@ -4,11 +4,9 @@ from tensorflow.keras.layers import Dense, Flatten
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.utils import to_categorical
 import numpy as np
-from tensorflow.keras.models import load_model
 
 # 加载数据
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
-#loaded_model = load_model('ann_test_1.h5')
 # 归一化,压缩灰度图为0-1范围小数
 x_train = x_train / 255.0
 x_test = x_test / 255.0
@@ -29,8 +27,8 @@ model.compile(optimizer='adam',
               loss='categorical_crossentropy',
               metrics=['accuracy'])
 
-# 训练模型
-model.fit(x_train, y_train, epochs=10, batch_size=32, validation_split=0.2)
+# 训练模型（10轮，批数量1024
+model.fit(x_train, y_train, epochs=10, batch_size=1024, validation_split=0.2)
 # 保存模型
 model.save('ann_test_1.h5')
 

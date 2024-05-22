@@ -2,28 +2,42 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.datasets import load_iris
-from sklearn.svm import SVC
+from sklearn.svm import SVC as SklearnSVC
 from sklearn.metrics import confusion_matrix
+from sklearn.inspection import DecisionBoundaryDisplay
 import seaborn as sns
-"使用四维向量训练模型"
+
 
 "---------------------------------1、导入数据集---------------------------"
 "------------------提供维数修改---------------------"
 # 加载鸢尾花数据集
 iris = load_iris()
-X = pd.DataFrame(iris.data, columns=iris.feature_names)
-y = pd.Series(iris.target)
+X = iris.data[:, :2]
+y = iris.target
 
-"------------------2、应用模型并训练------------------------"
+"---------------------------------2、赋值数学属性------------------------"
 "--------模型待展开----------"
-# 对X和y使用Fisher's LDA 算法，训练好的模型保存在类属性里，使用predict调用
-svm = SVC(kernel='linear')
-svm.fit(X, y)
 
-"-------------------3、使用训练好的模型进行预测--------------------------"
+class SVC:
+    def __init__(self, kernel='linear', C=1.0):
+        self.kernel = kernel
+        self.C = C
+        self.model = SklearnSVC(kernel=self.kernel, C=self.C)
+
+    def fit(self, X, y):
+        self.model.fit(X, y)
+
+    def predict(self, X):
+        return self.model.predict(X)
+
+svm = SVC()  #可选项，设定默认为linear,c = 1
+
+
+"---------------------------------3、训练模型并进行预测----------------"
+svm.fit(X, y)
 predictions = svm.predict(X)
 
-"-------------------4、数据后处理-------------------------"
+"---------------------------------4、数据后处理----------------------------"
 "计算准确度和混淆矩阵"
 prediction_arr = np.array([0,0,0])
 y_arr = np.array([0,0,0])
@@ -54,7 +68,7 @@ print(wrong_list)
 conf_matrix = confusion_matrix(y, predictions)
 print("conf_matrix:")
 print(conf_matrix)
-"-----------------5、可视化------------------"
+"----------------------------------5、可视化-----------------------------"
 "包含散点和混淆矩阵使用"
 
 #混淆矩阵
@@ -63,4 +77,15 @@ sns.heatmap(conf_matrix, annot=True, cmap='Blues', fmt='d', xticklabels=iris.tar
 plt.xlabel('Predicted Label')
 plt.ylabel('True Label')
 plt.title('Confusion Matrix')
+plt.show()
+
+fig, ax = plt.subplots()
+disp = DecisionBoundaryDisplay.from_estimator(
+    svm.model,
+    X,
+    response_method="predict",
+    ax = ax,
+    cmap=plt.cm.Paired)
+ax.scatter(X[:, 0], X[:, 1], c=y, edgecolor='k', s=20)
+ax.set_title('Decision Boundary of SVC')
 plt.show()

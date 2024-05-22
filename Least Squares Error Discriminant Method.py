@@ -11,49 +11,48 @@ import seaborn as sns
 "使用两维向量训练模型"
 
 "---------------------------------1、导入数据集---------------------------"
-"------------------提供维数修改---------------------"
+"------------------提供维数修改,现在调整为二分类---------------------"
 # 加载鸢尾花数据集
 iris = load_iris()
 X = iris.data[:, :2]
 y = iris.target
 
-"------------------2、应用模型并训练------------------------"
+mask = y < 2
+X = X[mask]
+y = y[mask]
+"---------------------------------2、赋值数学属性------------------------"
 "--------模型待展开----------"
-# 对X和y使用Fisher's LDA 算法，训练好的模型保存在类属性里，使用predict调用
-class LSEDA:
-    def __init__(self):
-        pass
 
+
+class LSEDA:
     def fit(self, X, y):
-        self.classes = np.unique(y)
-        self.mean_vectors = []
-        self.cov_matrices = []
-        for cls in self.classes:
-            X_cls = X[y == cls]
-            self.mean_vectors.append(np.mean(X_cls, axis=0))
-            self.cov_matrices.append(np.cov(X_cls.T))
+        X = np.hstack([np.ones((X.shape[0], 1)), X])
+
+        # 计算权重
+        X_transpose = X.T
+        self.weights_ = np.linalg.inv(X_transpose @ X) @ X_transpose @ y
 
     def predict(self, X):
-        predictions = []
-        for x in X:
-            min_distance = float('inf')
-            predicted_class = None
-            for cls, mean, cov in zip(self.classes, self.mean_vectors, self.cov_matrices):
-                distance = np.linalg.norm(x - mean)
-                if distance < min_distance:
-                    min_distance = distance
-                    predicted_class = cls
-            predictions.append(predicted_class)
-        return predictions
+        X = np.hstack([np.ones((X.shape[0], 1)), X])
+
+        # 计算预测值
+        y_pred = X @ self.weights_
+
+        # 将预测值转换为类别标签（这里假设二分类问题，使用0.5作为阈值）
+        y_pred_class = (y_pred >= 0.5).astype(int)
+
+        return y_pred_class
 
 
 lseda = LSEDA()
-lseda.fit(X, y)
 
-"-------------------3、使用训练好的模型进行预测--------------------------"
+
+"---------------------------------3、训练模型并进行预测----------------"
+lseda.fit(X, y)
 predictions = lseda.predict(X)
 
-"-------------------4、数据后处理-------------------------"
+
+"---------------------------------4、数据后处理----------------------------"
 "计算准确度和混淆矩阵"
 prediction_arr = np.array([0,0,0])
 y_arr = np.array([0,0,0])
@@ -94,24 +93,14 @@ plt.ylabel('True Label')
 plt.title('Confusion Matrix')
 plt.show()
 
-#散点图
-def plot_decision_boundary(model, X, y):
-    # Define grid range
-    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
-    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
-    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.1),
-                         np.arange(y_min, y_max, 0.1))
-
-    # Predict class labels for each point in the grid
-    Z = model.predict(np.c_[xx.ravel(), yy.ravel()])
-    Z = np.array(Z).reshape(xx.shape)
-
-    # Plot decision boundary and data points
-    plt.contourf(xx, yy, Z, alpha=0.3)
-    plt.scatter(X[:, 0], X[:, 1], c=y, edgecolor='k', s=20)
-    plt.xlabel('Feature 1')
-    plt.ylabel('Feature 2')
-    plt.title('Decision Boundary')
-    plt.show()
-
-plot_decision_boundary(lseda, X, y)
+#决策边界
+fig, ax = plt.subplots()
+disp = DecisionBoundaryDisplay.from_estimator(
+    lseda,
+    X,
+    response_method="predict",
+    ax = ax,
+    cmap=plt.cm.Paired)
+ax.scatter(X[:, 0], X[:, 1], c=y, edgecolor='k', s=20)
+ax.set_title('Decision Boundary of SVC')
+plt.show()

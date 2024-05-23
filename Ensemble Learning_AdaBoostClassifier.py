@@ -7,6 +7,7 @@ import numpy as np
 from sklearn.datasets import load_iris
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.metrics import confusion_matrix
+from sklearn.base import clone
 from sklearn.inspection import DecisionBoundaryDisplay
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -16,19 +17,93 @@ import matplotlib.pyplot as plt
 "------------------提供维数修改---------------------"
 # 加载鸢尾花数据集
 iris = load_iris()
-X, y = iris.data, iris.target
+X = iris.data[:, :2]
+y = iris.target
 
-"------------------2、应用模型并训练------------------------"
+"---------------------------------2、赋值数学属性--------------------------"
 "--------模型待展开----------"
 # 使用决策树桩作为基分类器
-base_clf = DecisionTreeClassifier(max_depth=1)
-ada_clf = AdaBoostClassifier(estimator=base_clf, n_estimators=50, algorithm='SAMME', random_state=42)
+class AdaBoostClassifier:
+    def __init__(self, base_estimator='decision_tree', n_estimators=10, random_state=None):
+        self.base_estimator = DecisionTreeClassifier(
+            max_depth=1) if base_estimator == 'decision_tree' else base_estimator
+        self.n_estimators = n_estimators
+        self.random_state = random_state
+        self.estimators_ = []
+        self.estimator_weights_ = []
+        self.estimator_errors_ = []
+
+    def fit(self, X, y):
+        np.random.seed(self.random_state)
+        n_samples, n_features = X.shape
+        self.classes_ = np.unique(y)
+        self.n_classes_ = len(self.classes_)
+
+        # Initialize weights
+        sample_weights = np.ones(n_samples) / n_samples
+
+        for iboost in range(self.n_estimators):
+            # Clone the base estimator
+            estimator = clone(self.base_estimator)
+
+            # Fit the estimator
+            estimator.fit(X, y, sample_weight=sample_weights)
+
+            # Predict on the training data
+            y_pred = estimator.predict(X)
+
+            # Compute the indicator function
+            incorrect = (y_pred != y)
+
+            # Calculate estimator error
+            estimator_error = np.dot(sample_weights, incorrect) / np.sum(sample_weights)
+
+            # If the error is 0 or the error is greater than or equal to 0.5, break
+            if estimator_error >= 0.5:
+                break
+            if estimator_error == 0:
+                estimator_weight = 1
+            else:
+                # Calculate estimator weight
+                estimator_weight = np.log((1. - estimator_error) / max(estimator_error, 1e-10))
+
+            # Store the current estimator and its weight
+            self.estimators_.append(estimator)
+            self.estimator_weights_.append(estimator_weight)
+            self.estimator_errors_.append(estimator_error)
+
+            # Update sample weights
+            sample_weights *= np.exp(estimator_weight * incorrect * ((sample_weights > 0) | (estimator_weight < 0)))
+
+            # Normalize the sample weights
+            sample_weights /= np.sum(sample_weights)
+
+    def predict(self, X):
+        # Aggregate predictions from all estimators
+        pred = np.zeros((X.shape[0], self.n_classes_))
+
+        for estimator, weight in zip(self.estimators_, self.estimator_weights_):
+            pred += weight * self._one_hot_encode(estimator.predict(X))
+
+        # Return the class with the highest aggregated weight
+        return self.classes_.take(np.argmax(pred, axis=1), axis=0)
+
+    def _one_hot_encode(self, y):
+        one_hot = np.zeros((y.shape[0], self.n_classes_))
+        for idx, class_ in enumerate(self.classes_):
+            one_hot[y == class_, idx] = 1
+        return one_hot
+
+
+ada_clf = AdaBoostClassifier(n_estimators=50, random_state=42)
 ada_clf.fit(X, y)
 
-"-------------------3、使用训练好的模型进行预测--------------------------"
+"---------------------------------3、训练模型并进行预测---------------------"
 predictions = ada_clf.predict(X)
 
-"-------------------4、数据后处理-------------------------"
+
+
+"---------------------------------4、数据后处理----------------------------"
 "计算准确度和混淆矩阵"
 prediction_arr = np.array([0,0,0])
 y_arr = np.array([0,0,0])
@@ -59,7 +134,7 @@ print(wrong_list)
 conf_matrix = confusion_matrix(y, predictions)
 print("conf_matrix:")
 print(conf_matrix)
-"-----------------5、可视化------------------"
+"----------------------------------5、可视化-----------------------------"
 "包含散点和混淆矩阵使用"
 
 #混淆矩阵
@@ -70,3 +145,15 @@ plt.ylabel('True Label')
 plt.title('Confusion Matrix')
 plt.show()
 
+#决策边界
+fig, ax = plt.subplots()
+disp = DecisionBoundaryDisplay.from_estimator(
+    ada_clf,
+    X,
+    response_method="predict",
+    ax = ax,
+    cmap = plt.cm.Paired
+)
+ax.scatter(X[:, 0], X[:, 1], c=y, edgecolor='k', s=20)
+ax.set_title('Decision Boundary of SVC')
+plt.show()

@@ -1,14 +1,14 @@
-import pandas as pd
 import numpy as np
-import warnings
-from sklearn.datasets import load_iris
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.metrics import confusion_matrix
-from sklearn.inspection import DecisionBoundaryDisplay
-from sklearn.utils.multiclass import check_classification_targets, unique_labels
-import seaborn as sns
+import pandas as pd
 import matplotlib.pyplot as plt
-"使用两维向量训练模型"
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import confusion_matrix
+from sklearn.datasets import load_iris
+from sklearn.inspection import DecisionBoundaryDisplay
+import seaborn as sns
+
+
 
 "---------------------------------1、导入数据集---------------------------"
 "------------------提供维数修改---------------------"
@@ -20,66 +20,60 @@ y = iris.target
 
 
 "---------------------------------2、赋值数学属性------------------------"
-"--------模型待展开----------"
-# 对X和y使用Fisher's LDA 算法，训练好的模型保存在类属性里，使用predict调用
+class LinearDiscriminantAnalysis:
+    def fit(self, X, y):
+        # 计算每个类的均值向量
+        self.means_ = []
+        self.classes_ = np.unique(y)
+        for cls in self.classes_:
+            self.means_.append(np.mean(X[y == cls], axis=0))
+        self.means_ = np.array(self.means_)
+
+        # 计算类内散布矩阵
+        n_features = X.shape[1]
+        self.Sw = np.zeros((n_features, n_features))
+        for cls in self.classes_:
+            Xi = X[y == cls]
+            mean_vec = self.means_[cls].reshape(n_features, 1)
+            scatter = np.dot((Xi - mean_vec.T).T, (Xi - mean_vec.T))
+            self.Sw += scatter
+
+        # 计算类间散布矩阵
+        overall_mean = np.mean(X, axis=0).reshape(n_features, 1)
+        self.Sb = np.zeros((n_features, n_features))
+        for i, mean_vec in enumerate(self.means_):
+            n = X[y == i, :].shape[0]
+            mean_vec = mean_vec.reshape(n_features, 1)
+            scatter = n * np.dot((mean_vec - overall_mean), (mean_vec - overall_mean).T)
+            self.Sb += scatter
+
+        # 计算Sw^-1 * Sb 的特征值和特征向量
+        eigvals, eigvecs = np.linalg.eig(np.linalg.inv(self.Sw).dot(self.Sb))
+        eig_pairs = [(eigvals[i], eigvecs[:, i]) for i in range(len(eigvals))]
+        eig_pairs = sorted(eig_pairs, key=lambda k: k[0], reverse=True)
+
+        # 选择最多特征向量，降维
+        self.W = np.hstack([eig_pairs[i][1].reshape(n_features, 1) for i in range(len(self.classes_) - 1)])
+
+        return self
+
+    def predict(self, X):
+        X_lda = X.dot(self.W)
+        means_lda = self.means_.dot(self.W)
+
+        # 分类
+        y_pred = []
+        for x in X_lda:
+            distances = [np.linalg.norm(x - mean_lda) for mean_lda in means_lda]
+            y_pred.append(np.argmin(distances))
+        return np.array(y_pred)
+
 lda = LinearDiscriminantAnalysis()
 
+
+
 "---------------------------------3、训练模型并进行预测----------------"
-def fit(self, X, y):
-
-    X, y = self._validate_data(X, y)
-    check_classification_targets(y)
-    self.classes_, y = np.unique(y, return_inverse=True)
-    n_samples, n_features = X.shape
-    n_classes = len(self.classes_)
-    if n_classes < 2:
-        raise ValueError(
-            "The number of classes has to be greater than one; got %d class"
-            % (n_classes)
-        )
-    if self.priors is None:
-        self.priors_ = np.bincount(y) / float(n_samples)
-    else:
-        self.priors_ = np.array(self.priors)
-
-    cov = None
-    store_covariance = self.store_covariance
-    if store_covariance:
-        cov = []
-    means = []
-    scalings = []
-    rotations = []
-    for ind in range(n_classes):
-        Xg = X[y == ind, :]
-        meang = Xg.mean(0)
-        means.append(meang)
-        if len(Xg) == 1:
-            raise ValueError(
-                "y has only 1 sample in class %s, covariance is ill defined."
-                % str(self.classes_[ind])
-            )
-        Xgc = Xg - meang
-        # Xgc = U * S * V.T
-        _, S, Vt = np.linalg.svd(Xgc, full_matrices=False)
-        rank = np.sum(S > self.tol)
-        if rank < n_features:
-            warnings.warn("Variables are collinear")
-        S2 = (S ** 2) / (len(Xg) - 1)
-        S2 = ((1 - self.reg_param) * S2) + self.reg_param
-        if self.store_covariance or store_covariance:
-            # cov = V * (S^2 / (n-1)) * V.T
-            cov.append(np.dot(S2 * Vt.T, Vt))
-        scalings.append(S2)
-        rotations.append(Vt.T)
-    if self.store_covariance or store_covariance:
-        self.covariance_ = cov
-    self.means_ = np.asarray(means)
-    self.scalings_ = scalings
-    self.rotations_ = rotations
-    return self
 lda.fit(X, y)
-
-"预测"
 predictions = lda.predict(X)
 
 

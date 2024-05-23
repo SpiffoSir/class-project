@@ -7,6 +7,7 @@ import numpy as np
 from sklearn.datasets import load_iris
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.metrics import confusion_matrix
+from sklearn.utils import resample
 from sklearn.inspection import DecisionBoundaryDisplay
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -16,19 +17,63 @@ import matplotlib.pyplot as plt
 "------------------提供维数修改---------------------"
 # 加载鸢尾花数据集
 iris = load_iris()
-X, y = iris.data, iris.target
+X = iris.data[:, :2]
+y = iris.target
 
-"------------------2、应用模型并训练------------------------"
+"---------------------------------2、赋值数学属性--------------------------"
 "--------模型待展开----------"
-# 使用决策树桩作为基分类器
-base_clf = DecisionTreeClassifier(max_depth=1)
-rf_clf = RandomForestClassifier(n_estimators=100, random_state=42)
+
+
+class RandomForestClassifier:
+    def __init__(self, n_estimators=100, max_depth=None, min_samples_split=2, min_samples_leaf=1):
+        self.n_estimators = n_estimators
+        self.max_depth = max_depth
+        self.min_samples_split = min_samples_split
+        self.min_samples_leaf = min_samples_leaf
+        self.trees = []
+
+    def fit(self, X, y):
+        self.trees = []
+        for _ in range(self.n_estimators):
+            X_sample, y_sample = resample(X, y, replace=True)
+            tree = DecisionTreeClassifier(max_depth=self.max_depth,
+                                          min_samples_split=self.min_samples_split,
+                                          min_samples_leaf=self.min_samples_leaf)
+            tree.fit(X_sample, y_sample)
+            self.trees.append(tree)
+        self.is_fitted_ = True
+        print("A")
+        #有点问题
+        # def fit(self, X, y):
+        #     self.trees = []
+        #     for _ in range(self.n_estimators):
+        #         # Bootstrap sampling
+        #         X_sample, y_sample = resample(X, y, replace=True)
+        #         # Create and train a decision tree
+        #         tree = DecisionTreeClassifier(max_depth=self.max_depth,
+        #                                       min_samples_split=self.min_samples_split,
+        #                                       min_samples_leaf=self.min_samples_leaf)
+        #         tree.fit(X_sample, y_sample)
+        #         self.trees.append(tree)
+        #
+        #     print("A")
+
+    def predict(self, X):
+        # Collect predictions from each tree
+        tree_predictions = np.array([tree.predict(X) for tree in self.trees])
+        # Majority voting
+        predictions = np.apply_along_axis(lambda x: np.bincount(x).argmax(), axis=0, arr=tree_predictions)
+        print("B")
+        return predictions
+
+rf_clf = RandomForestClassifier(max_depth=None, min_samples_split=2, min_samples_leaf=1)
+
+
+
+"---------------------------------3、训练模型并进行预测---------------------"
 rf_clf.fit(X, y)
-
-"-------------------3、使用训练好的模型进行预测--------------------------"
 predictions = rf_clf.predict(X)
-
-"-------------------4、数据后处理-------------------------"
+"---------------------------------4、数据后处理----------------------------"
 "计算准确度和混淆矩阵"
 prediction_arr = np.array([0,0,0])
 y_arr = np.array([0,0,0])
@@ -59,7 +104,7 @@ print(wrong_list)
 conf_matrix = confusion_matrix(y, predictions)
 print("conf_matrix:")
 print(conf_matrix)
-"-----------------5、可视化------------------"
+"----------------------------------5、可视化-----------------------------"
 "包含散点和混淆矩阵使用"
 
 #混淆矩阵
@@ -70,3 +115,15 @@ plt.ylabel('True Label')
 plt.title('Confusion Matrix')
 plt.show()
 
+#决策边界
+fig, ax = plt.subplots()
+disp = DecisionBoundaryDisplay.from_estimator(
+    rf_clf,
+    X,
+    response_method="predict",
+    ax = ax,
+    cmap = plt.cm.Paired
+)
+ax.scatter(X[:, 0], X[:, 1], c=y, edgecolor='k', s=20)
+ax.set_title('Decision Boundary of SVC')
+plt.show()
